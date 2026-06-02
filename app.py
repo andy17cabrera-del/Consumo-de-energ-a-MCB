@@ -111,8 +111,8 @@ with st.sidebar:
     MESES_ES = {1:"Ene", 2:"Feb", 3:"Mar", 4:"Abr", 5:"May", 6:"Jun",
                 7:"Jul", 8:"Ago", 9:"Sep", 10:"Oct", 11:"Nov", 12:"Dic"}
 
-    # Años disponibles en histórico
-    anos_hist = sorted(hist["Fecha"].dt.year.unique().tolist())
+    # Rango fijo 2022-2026 (años disponibles en histórico)
+    anos_hist = list(range(2022, 2027))
     ano_inicio = st.selectbox("Año inicio", anos_hist, index=0)
     mes_inicio = st.selectbox(
         "Mes inicio",
