@@ -220,9 +220,10 @@ st.markdown("")
 st.markdown("#### Ratios de consumo unitario — último mes real")
 cols_rat = st.columns(4)
 
-# Ratio Ox-EW — columna Q del Excel nuevo
-r_elec_ult = float(ult.get("Ratio Ox-EW TMF (kWh/t)", 0) or 0)
-r_elec_pen = float(pen.get("Ratio Ox-EW TMF (kWh/t)", 0) or 0)
+# Ratio Ox-EW — leer desde hoja Proyección Energía (col 16)
+# Usar primer período proyectado (abr-2026) como referencia
+r_elec_ult = float(proj["Ratio Ox-EW TMF (kWh/t)"].iloc[0]) if "Ratio Ox-EW TMF (kWh/t)" in proj.columns else 0
+r_elec_pen = float(proj["Ratio Ox-EW TMF (kWh/t)"].iloc[1]) if "Ratio Ox-EW TMF (kWh/t)" in proj.columns and len(proj) > 1 else r_elec_ult
 
 # Ratio Infra — calcular desde kWh y m3
 r_infra_ult = (float(ult["Infra Bombeo (kWh)"]) / float(ult["Agua Mar (m3)"])
