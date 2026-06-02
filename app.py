@@ -196,24 +196,55 @@ pen = hist_filtered.iloc[-2] if len(hist_filtered) >= 2 else hist_filtered.iloc[
 
 def delta_pct(a, b):
     return f"{((a/b)-1)*100:+.1f}%" if b > 0 else "—"
-    return f"{((a/b)-1)*100:+.1f}%" if b > 0 else "—"
 
-kpi_data = [
-    ("Total mensual",  ult["Sulfuros Total (kWh)"] + ult["Óxidos Total (kWh)"] + ult["Infra Bombeo (kWh)"],
-                       pen["Sulfuros Total (kWh)"] + pen["Óxidos Total (kWh)"] + pen["Infra Bombeo (kWh)"], "GWh"),
-    ("Sulfuros",       ult["Sulfuros Total (kWh)"],   pen["Sulfuros Total (kWh)"],   "GWh"),
-    ("Óxidos Total",   ult["Óxidos Total (kWh)"],     pen["Óxidos Total (kWh)"],     "GWh"),
-    ("Ratio Sulf",     ult["Ratio Sulf kWh/t TMS"],   pen["Ratio Sulf kWh/t TMS"],   "kWh/t"),
-    ("Ratio Óx TMS",   ult["Ratio Óx TMS kWh/t"],     pen["Ratio Óx TMS kWh/t"],     "kWh/t"),
+# ── FILA 1: Consumos GWh ──────────────────────────────────
+st.markdown("#### Consumos energéticos — último mes real")
+cols_gwh = st.columns(4)
+gwh_data = [
+    ("⚡ Total mensual",
+     ult["Sulfuros Total (kWh)"] + ult["Óxidos Total (kWh)"] + ult["Infra Bombeo (kWh)"],
+     pen["Sulfuros Total (kWh)"] + pen["Óxidos Total (kWh)"] + pen["Infra Bombeo (kWh)"]),
+    ("🟦 Sulfuros",
+     ult["Sulfuros Total (kWh)"], pen["Sulfuros Total (kWh)"]),
+    ("🟧 Óxidos Total",
+     ult["Óxidos Total (kWh)"],   pen["Óxidos Total (kWh)"]),
+    ("🟪 Infraestructura",
+     ult["Infra Bombeo (kWh)"],   pen["Infra Bombeo (kWh)"]),
 ]
+for col, (lbl, val, val_prev) in zip(cols_gwh, gwh_data):
+    col.metric(lbl, f"{val/1e6:,.3f} GWh", delta=delta_pct(val, val_prev))
 
-cols_kpi = st.columns(5)
-for col, (lbl, val, val_prev, unit) in zip(cols_kpi, kpi_data):
-    ghw = val / 1e6 if unit == "GWh" else val
+st.markdown("")
+
+# ── FILA 2: Ratios kWh/driver ─────────────────────────────
+st.markdown("#### Ratios de consumo unitario — último mes real")
+cols_rat = st.columns(4)
+
+# Ratio Electrodep — columna pre-calculada
+r_elec_ult = ult.get("Ratio Electrodep. kWh/tmf", 0) or 0
+r_elec_pen = pen.get("Ratio Electrodep. kWh/tmf", 0) or 0
+
+# Ratio Infra — calcular desde kWh y m3
+r_infra_ult = (float(ult["Infra Bombeo (kWh)"]) / float(ult["Agua Mar (m3)"])
+               if float(ult.get("Agua Mar (m3)", 0)) > 0 else 0)
+r_infra_pen = (float(pen["Infra Bombeo (kWh)"]) / float(pen["Agua Mar (m3)"])
+               if float(pen.get("Agua Mar (m3)", 0)) > 0 else 0)
+
+ratio_data = [
+    ("Ratio Sulf\n(kWh/t TMS)",
+     ult["Ratio Sulf kWh/t TMS"], pen["Ratio Sulf kWh/t TMS"], "kWh/t"),
+    ("Ratio Óx TMS\n(kWh/t)",
+     ult["Ratio Óx TMS kWh/t"],   pen["Ratio Óx TMS kWh/t"],   "kWh/t"),
+    ("Ratio Óx-EW\n(kWh/tmf)",
+     r_elec_ult,                   r_elec_pen,                   "kWh/tmf"),
+    ("Ratio Infra\n(kWh/m³)",
+     r_infra_ult,                  r_infra_pen,                  "kWh/m³"),
+]
+for col, (lbl, val, val_prev, unit) in zip(cols_rat, ratio_data):
     col.metric(
         lbl,
-        f"{ghw:,.3f} {unit}",
-        delta=delta_pct(val, val_prev),
+        f"{val:,.2f} {unit}" if val > 0 else "—",
+        delta=delta_pct(val, val_prev) if val > 0 and val_prev > 0 else None,
     )
 
 st.divider()
