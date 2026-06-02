@@ -465,15 +465,28 @@ with col_dist:
 
     # KPI ratios del último mes
     st.caption("Ratios — último mes real")
-    r_s = hist.iloc[-1]["Ratio Sulf kWh/t TMS"]
-    r_o = hist.iloc[-1]["Ratio Óx TMS kWh/t"]
-    r_e = hist.iloc[-1]["Ratio Electrodep. kWh/tmf"]
+    r_s = hist_filtered.iloc[-1]["Ratio Sulf kWh/t TMS"]
+    r_o = hist_filtered.iloc[-1]["Ratio Óx TMS kWh/t"]
+
+    # Ratio Óx-EW en kWh/t (Electrodep * TMF/TMS)
+    ult_h = hist_filtered.iloc[-1]
+    if ult_h["Óxidos TMS (t)"] > 100000 and ult_h["Óxidos TMF (tmf)"] > 500:
+        r_e = (ult_h["Ratio Electrodep. kWh/tmf"] *
+               ult_h["Óxidos TMF (tmf)"] / ult_h["Óxidos TMS (t)"])
+    else:
+        r_e = r_elec_ult  # usar valor proyectado como fallback
+
+    # Ratio Infra kWh/m3
+    r_i = (float(ult_h["Infra Bombeo (kWh)"]) / float(ult_h["Agua Mar (m3)"])
+           if float(ult_h.get("Agua Mar (m3)", 0)) > 0 else r_infra_ult)
+
     st.markdown(f"""
     | Planta | Ratio |
     |---|---|
     | Sulfuros | **{r_s:.2f}** kWh/t |
     | Óxidos TMS | **{r_o:.2f}** kWh/t |
-    | Electrodep. | **{r_e:,.0f}** kWh/tmf |
+    | Óx-EW | **{r_e:.2f}** kWh/t |
+    | Infra | **{r_i:.3f}** kWh/m³ |
     """)
 
 st.divider()
