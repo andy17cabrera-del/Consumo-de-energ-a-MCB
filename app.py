@@ -220,9 +220,9 @@ st.markdown("")
 st.markdown("#### Ratios de consumo unitario — último mes real")
 cols_rat = st.columns(4)
 
-# Ratio Electrodep — columna pre-calculada
-r_elec_ult = ult.get("Ratio Electrodep. kWh/tmf", 0) or 0
-r_elec_pen = pen.get("Ratio Electrodep. kWh/tmf", 0) or 0
+# Ratio Ox-EW — columna Q del Excel nuevo
+r_elec_ult = float(ult.get("Ratio Ox-EW TMF (kWh/t)", 0) or 0)
+r_elec_pen = float(pen.get("Ratio Ox-EW TMF (kWh/t)", 0) or 0)
 
 # Ratio Infra — calcular desde kWh y m3
 r_infra_ult = (float(ult["Infra Bombeo (kWh)"]) / float(ult["Agua Mar (m3)"])
