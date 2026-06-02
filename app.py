@@ -34,7 +34,7 @@ COLORS = {
 # ─────────────────────────────────────────────
 # CARGA DE DATOS
 # ─────────────────────────────────────────────
-@st.cache_data
+@st.cache_data(ttl=300)
 def load_data(path: str):
     xl = pd.ExcelFile(path)
 
@@ -131,6 +131,10 @@ with st.sidebar:
     fecha_fin    = pd.Timestamp(ano_fin, mes_fin, 1) + pd.offsets.MonthEnd(0)
 
     st.divider()
+    if st.button("🔄 Recargar datos"):
+        st.cache_data.clear()
+        st.rerun()
+
     st.markdown("### Acerca del modelo")
     st.caption(
         "Metodología: Tendencia Anual OLS + "
