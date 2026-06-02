@@ -106,6 +106,31 @@ with st.sidebar:
     planta_sel = st.selectbox("Planta", plantas_opciones)
 
     st.divider()
+    st.markdown("### Rango de fechas")
+
+    MESES_ES = {1:"Ene", 2:"Feb", 3:"Mar", 4:"Abr", 5:"May", 6:"Jun",
+                7:"Jul", 8:"Ago", 9:"Sep", 10:"Oct", 11:"Nov", 12:"Dic"}
+
+    # Años disponibles en histórico
+    anos_hist = sorted(hist["Fecha"].dt.year.unique().tolist())
+    ano_inicio = st.selectbox("Año inicio", anos_hist, index=0)
+    mes_inicio = st.selectbox(
+        "Mes inicio",
+        list(range(1, 13)),
+        format_func=lambda m: MESES_ES[m],
+        index=0
+    )
+    ano_fin = st.selectbox("Año fin", anos_hist, index=len(anos_hist)-1)
+    mes_fin = st.selectbox(
+        "Mes fin",
+        list(range(1, 13)),
+        format_func=lambda m: MESES_ES[m],
+        index=11
+    )
+    fecha_inicio = pd.Timestamp(ano_inicio, mes_inicio, 1)
+    fecha_fin    = pd.Timestamp(ano_fin, mes_fin, 1) + pd.offsets.MonthEnd(0)
+
+    st.divider()
     st.markdown("### Acerca del modelo")
     st.caption(
         "Metodología: Tendencia Anual OLS + "
@@ -155,7 +180,22 @@ st.divider()
 ult = hist.iloc[-1]
 pen = hist.iloc[-2]
 
+# Aplicar filtro de fechas al histórico
+hist_filtered = hist[
+    (hist["Fecha"] >= fecha_inicio) &
+    (hist["Fecha"] <= fecha_fin)
+].copy()
+
+# Si el filtro deja menos de 2 filas, usar histórico completo
+if len(hist_filtered) < 2:
+    hist_filtered = hist.copy()
+    st.sidebar.warning("Rango muy estrecho — mostrando histórico completo")
+
+ult = hist_filtered.iloc[-1]
+pen = hist_filtered.iloc[-2] if len(hist_filtered) >= 2 else hist_filtered.iloc[-1]
+
 def delta_pct(a, b):
+    return f"{((a/b)-1)*100:+.1f}%" if b > 0 else "—"
     return f"{((a/b)-1)*100:+.1f}%" if b > 0 else "—"
 
 kpi_data = [
@@ -184,7 +224,7 @@ st.divider()
 st.subheader("Consumo mensual por planta (GWh)")
 
 # Construir series según vista
-hist_plot = hist.copy()
+hist_plot = hist_filtered.copy()
 hist_plot["Sulf_GWh"]  = hist_plot["Sulfuros Total (kWh)"] / 1e6
 hist_plot["Oxid_GWh"]  = hist_plot["Óxidos Total (kWh)"] / 1e6
 hist_plot["Infra_GWh"] = hist_plot["Infra Bombeo (kWh)"] / 1e6
@@ -251,7 +291,7 @@ with col_rat:
         fig = go.Figure()
         # Histórico
         fig.add_trace(go.Scatter(
-            x=hist["Fecha"], y=hist[hist_col],
+            x=hist_filtered["Fecha"], y=hist_filtered[hist_col],
             mode="lines+markers", name="Real",
             line=dict(color=color, width=2),
             marker=dict(size=3),
@@ -263,7 +303,7 @@ with col_rat:
             line=dict(color=color, width=2, dash="dash"),
         ))
         # Media base
-        mean_val = hist[hist_col].dropna().mean()
+        mean_val = hist_filtered[hist_col].dropna().mean()
         fig.add_hline(y=mean_val, line_dash="dot",
                       line_color="gray", annotation_text=f"Media {mean_val:.2f}",
                       annotation_position="top left")
@@ -290,7 +330,7 @@ with col_rat:
         )
     with tab_i:
         # Infra only available from 2025
-        hist_i = hist[hist["Agua Mar (m3)"] > 0].copy()
+        hist_i = hist_filtered[hist_filtered["Agua Mar (m3)"] > 0].copy()
         hist_i["ratio_infra"] = hist_i["Infra Bombeo (kWh)"] / hist_i["Agua Mar (m3)"]
         fig_i = go.Figure()
         fig_i.add_trace(go.Scatter(
@@ -318,7 +358,7 @@ with col_rat:
 with col_dist:
     st.subheader("Distribución promedio")
     # Use latest 12 months of historical
-    last12 = hist.tail(12)
+    last12 = hist_filtered.tail(12)
     avg_s = last12["Sulfuros Total (kWh)"].mean() / 1e6
     avg_o = last12["Óxidos Total (kWh)"].mean() / 1e6
     avg_i = last12["Infra Bombeo (kWh)"].mean() / 1e6
