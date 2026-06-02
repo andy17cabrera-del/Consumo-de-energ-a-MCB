@@ -365,16 +365,25 @@ with col_rat:
             use_container_width=True
         )
     with tab_ew:
-        # Óx-EW: histórico calculado, proyectado desde col Ratio Ox-EW TMF
+        # Óx-EW = kWh_Electrodep / Óxidos_TMS * (TMF/TMS factor)
+        # Fórmula: Ratio_kWh/tmf * tmf / TMS = kWh/t TMS
         hist_ew = hist_filtered.copy()
-        # Factor de conversión tmf/TMS para normalizar
-        mask_ew = (hist_ew["Óxidos TMS (t)"] > 0) & (hist_ew["Óxidos TMF (tmf)"] > 0)
+        mask_ew = (hist_ew["Óxidos TMS (t)"] > 100000) & (hist_ew["Óxidos TMF (tmf)"] > 500)
+        hist_ew["ratio_ew"] = float("nan")
         if mask_ew.sum() > 0:
-            factor_ew = (hist_ew.loc[mask_ew, "Óxidos TMF (tmf)"] /
-                         hist_ew.loc[mask_ew, "Óxidos TMS (t)"]).mean()
-        else:
-            factor_ew = 0.004
-        hist_ew["ratio_ew"] = hist_ew["Ratio Electrodep. kWh/tmf"] * factor_ew
+            hist_ew.loc[mask_ew, "ratio_ew"] = (
+                hist_ew.loc[mask_ew, "Ratio Electrodep. kWh/tmf"] *
+                hist_ew.loc[mask_ew, "Óxidos TMF (tmf)"] /
+                hist_ew.loc[mask_ew, "Óxidos TMS (t)"]
+            )
+        # Filtrar outliers (fuera de media ± 3 std)
+        r_clean = hist_ew["ratio_ew"].dropna()
+        if len(r_clean) > 3:
+            mu, sd = r_clean.mean(), r_clean.std()
+            hist_ew.loc[hist_ew["ratio_ew"] > mu + 3*sd, "ratio_ew"] = float("nan")
+        mean_ew = hist_ew["ratio_ew"].dropna().mean()
+        ymin_ew = max(0, hist_ew["ratio_ew"].dropna().min() * 0.9)
+        ymax_ew = hist_ew["ratio_ew"].dropna().max() * 1.1 if len(hist_ew["ratio_ew"].dropna()) > 0 else 10
 
         fig_ew = go.Figure()
         fig_ew.add_trace(go.Scatter(
@@ -389,13 +398,12 @@ with col_rat:
                 mode="lines", name="Proyectado",
                 line=dict(color=COLORS["Electrodeposición"], width=2, dash="dash"),
             ))
-        mean_ew = hist_ew["ratio_ew"].dropna().mean()
         fig_ew.add_hline(y=mean_ew, line_dash="dot", line_color="gray",
                          annotation_text=f"Media {mean_ew:.2f}")
         fig_ew.update_layout(
             height=220, margin=dict(l=0,r=0,t=10,b=0),
             legend=dict(orientation="h", yanchor="bottom", y=1.01),
-            yaxis=dict(gridcolor="rgba(128,128,128,0.15)"),
+            yaxis=dict(range=[ymin_ew, ymax_ew], gridcolor="rgba(128,128,128,0.15)"),
             xaxis=dict(gridcolor="rgba(128,128,128,0.15)"),
             plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
         )
