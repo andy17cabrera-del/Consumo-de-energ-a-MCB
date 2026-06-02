@@ -321,7 +321,7 @@ col_rat, col_dist = st.columns([2, 1])
 
 with col_rat:
     st.subheader("Ratios de consumo unitario")
-    tab_s, tab_o, tab_i = st.tabs(["Sulfuros (kWh/t)", "Óxidos TMS (kWh/t)", "Infra (kWh/m³)"])
+    tab_s, tab_o, tab_ew, tab_i = st.tabs(["Sulfuros (kWh/t)", "Óxidos TMS (kWh/t)", "Óx-EW (kWh/t)", "Infra (kWh/m³)"])
 
     def ratio_chart(hist_col, proj_col, color, ymin, ymax):
         fig = go.Figure()
@@ -364,6 +364,43 @@ with col_rat:
                         COLORS["Óxidos sin Elec."], 4.5, 10),
             use_container_width=True
         )
+    with tab_ew:
+        # Óx-EW: histórico calculado, proyectado desde col Ratio Ox-EW TMF
+        hist_ew = hist_filtered.copy()
+        # Factor de conversión tmf/TMS para normalizar
+        mask_ew = (hist_ew["Óxidos TMS (t)"] > 0) & (hist_ew["Óxidos TMF (tmf)"] > 0)
+        if mask_ew.sum() > 0:
+            factor_ew = (hist_ew.loc[mask_ew, "Óxidos TMF (tmf)"] /
+                         hist_ew.loc[mask_ew, "Óxidos TMS (t)"]).mean()
+        else:
+            factor_ew = 0.004
+        hist_ew["ratio_ew"] = hist_ew["Ratio Electrodep. kWh/tmf"] * factor_ew
+
+        fig_ew = go.Figure()
+        fig_ew.add_trace(go.Scatter(
+            x=hist_ew["Fecha"], y=hist_ew["ratio_ew"],
+            mode="lines+markers", name="Real",
+            line=dict(color=COLORS["Electrodeposición"], width=2),
+            marker=dict(size=3),
+        ))
+        if "Ratio Ox-EW TMF (kWh/t)" in proj.columns:
+            fig_ew.add_trace(go.Scatter(
+                x=proj["Fecha"], y=proj["Ratio Ox-EW TMF (kWh/t)"],
+                mode="lines", name="Proyectado",
+                line=dict(color=COLORS["Electrodeposición"], width=2, dash="dash"),
+            ))
+        mean_ew = hist_ew["ratio_ew"].dropna().mean()
+        fig_ew.add_hline(y=mean_ew, line_dash="dot", line_color="gray",
+                         annotation_text=f"Media {mean_ew:.2f}")
+        fig_ew.update_layout(
+            height=220, margin=dict(l=0,r=0,t=10,b=0),
+            legend=dict(orientation="h", yanchor="bottom", y=1.01),
+            yaxis=dict(gridcolor="rgba(128,128,128,0.15)"),
+            xaxis=dict(gridcolor="rgba(128,128,128,0.15)"),
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+        )
+        st.plotly_chart(fig_ew, use_container_width=True)
+
     with tab_i:
         # Infra only available from 2025
         hist_i = hist_filtered[hist_filtered["Agua Mar (m3)"] > 0].copy()
