@@ -498,60 +498,77 @@ st.subheader("Proyección anual 2026–2045 (GWh/año)")
 
 fig_ann = go.Figure()
 for col, lbl, color in [
-    ("Sulfuros (GWh)",        "Sulfuros",       COLORS["Sulfuros"]),
-    ("Óxidos TOTAL (GWh)",    "Óxidos Total",   COLORS["Óxidos Total"]),
-    ("Infraestructura (GWh)", "Infra",          COLORS["Infraestructura"]),
+    ("Sulfuros (GWh)",        "Sulfuros",     COLORS["Sulfuros"]),
+    ("Óxidos TOTAL (GWh)",    "Óxidos Total", COLORS["Óxidos Total"]),
+    ("Infraestructura (GWh)", "Infra",        COLORS["Infraestructura"]),
 ]:
     fig_ann.add_trace(go.Bar(
         x=ann["Año"], y=ann[col],
         name=lbl, marker_color=color,
+        hovertemplate="<b>%{x}</b><br>" + lbl + ": %{y:.1f} GWh<extra></extra>",
     ))
 
 fig_ann.update_layout(
-    barmode="stack", height=280,
+    barmode="stack", height=300,
     margin=dict(l=0, r=0, t=10, b=0),
     legend=dict(orientation="h", yanchor="bottom", y=1.01),
     xaxis_title=None, yaxis_title="GWh",
     plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
     xaxis=dict(gridcolor="rgba(128,128,128,0.15)", type="category"),
     yaxis=dict(gridcolor="rgba(128,128,128,0.15)"),
+    hoverlabel=dict(bgcolor="white", font_size=12),
+    hovermode="x unified",
 )
-st.plotly_chart(fig_ann, use_container_width=True)
+st.plotly_chart(fig_ann, use_container_width=True, config={"displayModeBar": True})
 
 # ─────────────────────────────────────────────
 # TABLA DETALLE PROYECCIÓN
 # ─────────────────────────────────────────────
 with st.expander("Ver tabla completa de proyección período a período"):
     display_cols = {
-        "Período":             "Período",
-        "Frecuencia":          "Frecuencia",
-        "kWh Sulfuros":        "kWh Sulfuros",
-        "kWh Óxidos TOTAL":    "kWh Óxidos Total",
-        "kWh Infraestruc.":    "kWh Infra",
-        "kWh TOTAL":           "kWh Total",
-        "GWh Total":           "GWh Total",
-        "Ratio Sulf (kWh/t)":  "Ratio Sulf",
-        "Ratio Ox TMS (kWh/t)":"Ratio Ox TMS",
-        "Ratio Infra (kWh/m3)":"Ratio Infra",
+        "Período":                 "Período",
+        "Frecuencia":              "Frecuencia",
+        "Sulfuros TMS (t)":        "Sulf TMS (t)",
+        "Óxidos TMS (t)":          "Oxid TMS (t)",
+        "Óxidos TMF (tmf)":        "Oxid TMF (tmf)",
+        "Agua Mar (m3)":           "Agua Mar (m3)",
+        "kWh Sulfuros":            "kWh Sulfuros",
+        "kWh Óxidos sin Elec.":    "kWh Óx sin Elec.",
+        "kWh Electrodep.":         "kWh Electrodep.",
+        "kWh Óxidos TOTAL":        "kWh Óxidos Total",
+        "kWh Infraestruc.":        "kWh Infra",
+        "kWh TOTAL":               "kWh Total",
+        "GWh Total":               "GWh Total",
+        "Ratio Sulf (kWh/t)":      "Ratio Sulf",
+        "Ratio Ox TMS (kWh/t)":    "Ratio Ox TMS",
+        "Ratio Ox-EW TMF (kWh/t)": "Ratio Ox-EW",
+        "Ratio Infra (kWh/m3)":    "Ratio Infra",
     }
     df_show = proj[[c for c in display_cols if c in proj.columns]].copy()
     df_show.columns = [display_cols[c] for c in df_show.columns]
     st.dataframe(
         df_show.style.format({
-            "kWh Sulfuros":   "{:,.0f}",
-            "kWh Óxidos Total": "{:,.0f}",
-            "kWh Infra":      "{:,.0f}",
-            "kWh Total":      "{:,.0f}",
-            "GWh Total":      "{:.3f}",
-            "Ratio Sulf":     "{:.2f}",
-            "Ratio Ox TMS":   "{:.2f}",
-            "Ratio Infra":    "{:.3f}",
+            "Sulf TMS (t)":      "{:,.0f}",
+            "Oxid TMS (t)":      "{:,.0f}",
+            "Oxid TMF (tmf)":    "{:,.1f}",
+            "Agua Mar (m3)":     "{:,.0f}",
+            "kWh Sulfuros":      "{:,.0f}",
+            "kWh Óx sin Elec.":  "{:,.0f}",
+            "kWh Electrodep.":   "{:,.0f}",
+            "kWh Óxidos Total":  "{:,.0f}",
+            "kWh Infra":         "{:,.0f}",
+            "kWh Total":         "{:,.0f}",
+            "GWh Total":         "{:.3f}",
+            "Ratio Sulf":        "{:.2f}",
+            "Ratio Ox TMS":      "{:.2f}",
+            "Ratio Ox-EW":       "{:.2f}",
+            "Ratio Infra":       "{:.3f}",
         }),
         use_container_width=True,
-        height=300,
+        height=350,
     )
     csv = df_show.to_csv(index=False).encode("utf-8")
-    st.download_button("Descargar CSV", csv, "proyeccion_energia.csv", "text/csv")
+    st.download_button("⬇ Descargar CSV", csv, "proyeccion_energia.csv", "text/csv")
 
 # ─────────────────────────────────────────────
 # TABLA RESUMEN ANUAL
